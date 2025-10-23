@@ -81,8 +81,60 @@ contract Algorithm {
 
 
     // 4.合并两个有序数组 (Merge Sorted Array)
+    function mergeSortedArrays(uint[] memory a, uint[] memory b) public pure returns (uint[] memory) {
+        uint len1 = a.length;
+        uint len2 = b.length;
+        uint[] memory merged = new uint[](len1 + len2);
+        uint i = 0;
+        uint j = 0;
+        uint k = 0;
+        while (i < len1 && j < len2) {
+            if (a[i] <= b[j]) {
+                merged[k] = a[i];
+                i++;
+            } else {
+                merged[k] = b[j];
+                j++;
+            }
+            k++;
+        }
+        // 再分别处理数组a和b的剩余元素（若有）
+        while (i < len1) {
+            merged[k] = a[i];
+            i++;
+            k++;
+        }
+        while (j < len2) {
+            merged[k] = b[j];
+            j++;
+            k++;
+        }
+        return merged;
+    }
 
 
-    // 5.二分查找 (Binary Search)
+    // 5.二分查找 (Binary Search)，在一个有序数组中查找目标值
+    function binarySearch(uint[] memory nums, uint target) public pure returns (uint) {
+        require(nums.length > 0, "empty array");
+        uint left = 0;
+        uint right = nums.length - 1;
+        while (left <= right) {
+            // 计算中间索引（避免 left + right 溢出）
+            uint mid = left + (right - left) / 2;
+            if (nums[mid] == target) {
+                return mid;
+            } else if (nums[mid] < target) {
+                left = mid + 1;
+            } else {
+                if (mid == 0) {
+                    // 已经找完了，未找到返回数组长度
+                    return nums.length;
+                }
+                right = mid - 1;
+            }
+        }
+        // 未找到，返回数组长度
+        return nums.length;
+    }
 
 }
