@@ -1,0 +1,9 @@
+{
+  "name": "NFT #1",
+  "description": "图文并茂的测试NFT",
+  "image": "ipfs://bafkreieswwnvkeubj2tx2c5glvuilyc7hgic7qdkhbfg2yxoct37gy5fw4",
+  "attributes": [
+    {"trait_type": "Type", "value": "Art"},
+    {"trait_type": "Rarity", "value": "Epic"}
+  ]
+}

@@ -14,7 +14,7 @@ states/
 .env
 .env.local
 node_modules
-.env
+.deps/** 
 
 # Hardhat files
 /cache
