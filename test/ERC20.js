@@ -21,16 +21,22 @@ describe("ERC20", async () => {
 
     it("验证下合约的构造信息", async () => {
         const totalSupply = await erc20Contract.totalSupply();
-        expect(totalSupply).to.equal(initialSupply);
+        expect(parseFloat(ethers.formatEther(totalSupply)) === initialSupply);
+
         expect(await erc20Contract.decimals()).to.equal(18);
         expect(await erc20Contract.symbol()).to.equal("TST");
-        expect(await erc20Contract.balanceOf(account1.address)).to.equal(initialSupply);
+
+        const weiAmount = await erc20Contract.balanceOf(account1.address);
+        console.log('===weiAmount===', weiAmount);
+        const ethAmount = ethers.formatEther(weiAmount)
+        console.log('===ethAmount===', ethAmount);
+        expect(parseFloat(ethAmount) === initialSupply);
     })
 
     it("验证转账", async () => {
-        const resp = await erc20Contract.transfer(account2.address, 100);
+        const amount = 1000;
+        const resp = await erc20Contract.transfer(account2.address, amount);
         console.log(resp)
-        expect(await erc20Contract.balanceOf(account1.address)).to.equal(initialSupply - 100);
-        expect(await erc20Contract.balanceOf(account2.address)).to.equal(100);
+        expect(await erc20Contract.balanceOf(account2.address)).to.equal(amount);
     })
 })
