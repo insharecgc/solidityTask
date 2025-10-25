@@ -3,7 +3,6 @@
 **/artifacts/**
 
 # Remix plugin state folders
-deps/
 states/
 
 # Debug info
@@ -14,7 +13,6 @@ states/
 .env
 .env.local
 node_modules
-**/.deps/** 
 
 # Hardhat files
 /cache
@@ -30,3 +28,5 @@ node_modules
 
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments
+/.deps
+/contracts/.deps
