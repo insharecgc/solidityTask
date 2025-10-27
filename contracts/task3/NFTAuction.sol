@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
@@ -169,11 +169,11 @@ contract NFTAuction is
      * @param _amount 对应资产类型出价金额，如果是ETH竞拍，msg.value必须等于此值
      */
     function placeBid(
-        address calldata _payToken,
+        address _payToken,
         uint256 _amount
     ) public payable nonReentrant {
         require(
-            !auctionInfo.ended,
+            !auctionInfo.ended &&
             block.timestamp < auctionInfo.startTime + auctionInfo.duration,
             "auction ended"
         );
@@ -186,7 +186,7 @@ contract NFTAuction is
             require(IERC20(auctionInfo.payToken).allowance(msg.sender, address(this)) >= _amount, "ERC20 allowance not enough");
         }
         require(_amount > 0, "bid amount need > 0");    // 出价金额必须大于0
-        require(msg.sender != auction.seller, "Seller cannot bid"); // 禁止卖家自己出价
+        require(msg.sender != auctionInfo.seller, "Seller cannot bid"); // 禁止卖家自己出价
 
         // 得到当前最高出价的USD价值
         uint256 hightestUSD = _getHightestUSDValue();
@@ -198,7 +198,7 @@ contract NFTAuction is
 
         if (_payToken != address(0)) {
             // 当前竞拍价为最高，把竞拍的ERC20金额转到本合约
-            bool transferSuccess = IERC20(_payToken).transferFrom(msg.sender, address(this), amount);
+            bool transferSuccess = IERC20(_payToken).transferFrom(msg.sender, address(this), _amount);
             require(transferSuccess, "ERC20 transfer failed");
         }
 
@@ -240,10 +240,9 @@ contract NFTAuction is
             nft.safeTransferFrom(address(this), auctionInfo.highestBidder, auctionInfo.tokenId);
 
             // 计算手续费，从工厂函数计算手续费，（手续费可由工厂管理员设置）
-            (uint256 fee, uint256 sellerAmount) = _calculateFeeAndSellerAmount(auction.highestBid);
+            (uint256 feeAmount, uint256 sellerAmount) = _calculateFeeAndSellerAmount(auctionInfo.highestBid);
 
             // TODO 转给卖家
-            uint256 sellerAmount = auctionInfo.highestBid - feeAmount; // 计算卖家应得的金额
             _refund(auctionInfo.seller, auctionInfo.payToken, sellerAmount);
 
             // TODO 把手续费转给平台，从工厂函数获取平台地址
@@ -286,12 +285,12 @@ contract NFTAuction is
         require(priceRaw > 0, "Invalid price from feed");
         uint256 price = uint256(priceRaw);
         uint256 feedDecimal = feed.decimals();
-        return (_amount.mul(price)).div(10 ** feedDecimal);
+        return (_amount * price) / (10 ** feedDecimal);
     }
 
     // 计算当前拍卖最高出价的 USD 价值
     function _getHightestUSDValue() internal view returns (uint256) {
-        AggregatorV3Interface feed = priceFeeds[_payToken];
+        AggregatorV3Interface feed = priceFeeds[auctionInfo.payToken];
         require(address(feed) != address(0), "Price feed not set for payToken");
         (, int256 priceRaw, , , ) = feed.latestRoundData();
         require(priceRaw > 0, "Invalid price from feed");
@@ -303,7 +302,7 @@ contract NFTAuction is
         if (auctionInfo.highestBidder != address(0)) {
             hightestAmount = auctionInfo.highestBid;
         }
-        return (hightestAmount.mul(price)).div(10 ** feedDecimal);
+        return (hightestAmount * price) / (10 ** feedDecimal);
     }
 
     // 通用退款/转账函数，处理ETH和ERC20资金
