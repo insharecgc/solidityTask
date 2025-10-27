@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -15,6 +15,10 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 
 import {console} from "hardhat/console.sol";
 
+/**
+ * @title NFT拍卖合约
+ * @notice 实现NFT的拍卖功能，支持ETH和ERC20参与竞拍，价格以USD计价，集成chainlink预言机获取实时价格，使用UUPS升级模式
+ */
 contract NFTAuction is
     IERC721Receiver,
     Initializable,
@@ -83,6 +87,7 @@ contract NFTAuction is
      * @param _startPrice 起拍价格
      * @param _tokenId NFT ID
      * @param _payToken 参与竞价的资产类型（0x0 地址表示eth，其他地址表示erc20）
+     * @param _factory 工厂合约地址，用于调用工厂合约的相关函数（如计算手续费，把手续费转给平台）
      * @param _auctionId 拍卖ID
      */
     function initialize(
@@ -101,7 +106,7 @@ contract NFTAuction is
 
         require(_seller != address(0), "seller not be 0x0");
         require(_nftContract != address(0), "nftContract not be 0x0");
-        require(_factory != address(0), "factory not be 0x0");
+        // require(_factory != address(0), "factory not be 0x0");
         require(_duration > 0, "duration need > 0");
         require(_startPrice > 0, "startPrice need > 0");
         require(_tokenId > 0, "tokenId need > 0");
@@ -109,11 +114,11 @@ contract NFTAuction is
         // 获取NFT合约实例
         IERC721 nft = IERC721(_nftContract);
         require(nft.ownerOf(_tokenId) == _seller, "seller not be NFT owner");
-        require(
-            nft.isApprovedForAll(_seller, address(this)) ||
-                nft.getApproved(_tokenId) == address(this),
-            "Not NFT Approval"
-        );
+        // require(
+        //     nft.isApprovedForAll(_seller, address(this)) ||
+        //         nft.getApproved(_tokenId) == address(this),
+        //     "Not NFT Approval"
+        // );
 
         // 初始化添加Sepolia测试网的 ETH/USD 和 USDC/USD 价格预言机
         _initPriceFeeds();
@@ -242,17 +247,16 @@ contract NFTAuction is
             // 计算手续费，从工厂函数计算手续费，（手续费可由工厂管理员设置）
             (uint256 feeAmount, uint256 sellerAmount) = _calculateFeeAndSellerAmount(auctionInfo.highestBid);
 
-            // TODO 转给卖家
+            // 转给卖家
             _refund(auctionInfo.seller, auctionInfo.payToken, sellerAmount);
 
-            // TODO 把手续费转给平台，从工厂函数获取平台地址
-
-
+            // 把手续费转给平台，从工厂函数获取平台地址
+            address platformFeeRecipient = _getPlatformFeeAddress();
+            _refund(platformFeeRecipient, auctionInfo.payToken, feeAmount);
         } else {
             // 如果无人出价，则将NFT转回给卖家
             nft.safeTransferFrom(address(this), auctionInfo.seller, auctionInfo.tokenId);
         }
-
 
         emit AuctionEnded(
             auctionInfo.highestBidder,
@@ -333,6 +337,14 @@ contract NFTAuction is
         uint256 fee = abi.decode(data, (uint256));
         
         return (fee, _amount - fee);
+    }
+
+    function _getPlatformFeeAddress() internal returns (address) {
+        (bool success, bytes memory data) = auctionInfo.factory.call(
+            abi.encodeWithSignature("getPlatformFeeRecipient()")
+        );
+        require(success, "Failed to get platform fee address");
+        return abi.decode(data, (address));
     }
 
     function onERC721Received(

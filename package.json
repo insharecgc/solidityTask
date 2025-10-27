@@ -3,6 +3,7 @@
     "@chainlink/contracts": "^1.5.0",
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.1",
     "hardhat-deploy": "^1.0.4"
   },
   "devDependencies": {
