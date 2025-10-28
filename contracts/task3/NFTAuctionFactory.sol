@@ -84,6 +84,7 @@ contract NFTAuctionFactory is
         // 检查用户是否拥有NFT且已授权
         IERC721 nft = IERC721(_nftContract);
         require(nft.ownerOf(_tokenId) == msg.sender, "Not the owner");
+        // NFT合约需要授权给拍卖工厂合约，拍卖工厂合约才能转移NFT
         require(
             nft.isApprovedForAll(msg.sender, address(this)) || 
             nft.getApproved(_tokenId) == address(this),
@@ -112,7 +113,7 @@ contract NFTAuctionFactory is
         // 在创建拍卖合约之后，将NFT转移给拍卖合约
         nft.transferFrom(msg.sender, auctionAddress, _tokenId);
 
-        console.log("NFTAuctonFactory - Auction created: %s", auctionAddress);
+        console.log("NFTAuctionFactory - Auction created: %s", auctionAddress);
 
         emit AuctionCreated(auctionId, auctionAddress, msg.sender, _nftContract, _tokenId);
         return auctionId;

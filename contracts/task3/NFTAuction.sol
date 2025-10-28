@@ -79,6 +79,8 @@ contract NFTAuction is
         address payToken
     );
 
+    event TransferNFT(address indexed nftContract, address indexed user, uint256 tokenId);
+
     /**
      * @dev 初始化函数
      * @param _seller 卖家地址
@@ -114,12 +116,7 @@ contract NFTAuction is
         // 获取NFT合约实例
         IERC721 nft = IERC721(_nftContract);
         require(nft.ownerOf(_tokenId) == _seller, "seller not be NFT owner");
-        // require(
-        //     nft.isApprovedForAll(_seller, address(this)) ||
-        //         nft.getApproved(_tokenId) == address(this),
-        //     "Not NFT Approval"
-        // );
-
+        
         // 初始化添加Sepolia测试网的 ETH/USD 和 USDC/USD 价格预言机
         _initPriceFeeds();
 
@@ -236,26 +233,30 @@ contract NFTAuction is
 
         // 结束拍卖
         auctionInfo.ended = true;
-
         // 获取NFT合约实例
         IERC721 nft = IERC721(auctionInfo.nftContract);
 
         if (auctionInfo.highestBidder != address(0)) {
-            // 如果有人出价，则将NFT转给最高出价者，扣出手续费后把剩余的金额转给卖家
+            // 如果有人出价，则将NFT转给最高出价者，扣除手续费后把剩余的金额转给卖家
+            console.log("has bidder, transfer nft to bidder");
             nft.safeTransferFrom(address(this), auctionInfo.highestBidder, auctionInfo.tokenId);
 
             // 计算手续费，从工厂函数计算手续费，（手续费可由工厂管理员设置）
             (uint256 feeAmount, uint256 sellerAmount) = _calculateFeeAndSellerAmount(auctionInfo.highestBid);
 
             // 转给卖家
+            console.log("transfer eth to seller");
             _refund(auctionInfo.seller, auctionInfo.payToken, sellerAmount);
 
             // 把手续费转给平台，从工厂函数获取平台地址
             address platformFeeRecipient = _getPlatformFeeAddress();
             _refund(platformFeeRecipient, auctionInfo.payToken, feeAmount);
+            emit TransferNFT(auctionInfo.nftContract, auctionInfo.highestBidder, auctionInfo.tokenId);
         } else {
             // 如果无人出价，则将NFT转回给卖家
+            console.log("no bidder, return nft to seller");
             nft.safeTransferFrom(address(this), auctionInfo.seller, auctionInfo.tokenId);
+            emit TransferNFT(auctionInfo.nftContract, auctionInfo.seller, auctionInfo.tokenId);
         }
 
         emit AuctionEnded(

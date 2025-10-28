@@ -1,0 +1,9 @@
+{
+  "name": "NFT-6",
+  "description": "测试NFT-6号",
+  "image": "ipfs://bafkreih5f2hjeljj7fomhosu233yq6rlkzwwoep5aq7v5vqhiunw4cryb4",
+  "attributes": [
+    {"trait_type": "Type", "value": "Art"},
+    {"trait_type": "Rarity", "value": "Epic"}
+  ]
+}

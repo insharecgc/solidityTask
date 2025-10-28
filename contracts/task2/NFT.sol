@@ -31,7 +31,7 @@ contract NFT is ERC721, Ownable {
 
 
     // 铸造 NFT（仅所有者可调用）
-    function mintNFT(address to, uint256 tokenId, string calldata tokenUri) external onlyOwner returns(bool) {
+    function mint(address to, uint256 tokenId, string calldata tokenUri) external onlyOwner returns(bool) {
         require(tokenId >=0 && tokenId < MAX_TOKEN, "tokenId out of range");
         require(bytes(tokenUri).length > 0, "tokenUri is empty");
         _safeMint(to, tokenId);

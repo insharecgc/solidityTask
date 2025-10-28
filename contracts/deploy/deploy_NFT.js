@@ -12,12 +12,12 @@ async function main() {
   const NFT = await ethers.getContractFactory("NFT");
   
   // 部署合约（若有构造函数参数，需在此处传入）
-  const myNFT = await NFT.deploy("MyNFT", "ISRNFT");
+  const myNft = await NFT.deploy("ISRNFT", "ISRNFT");
 
-  myNFT.waitForDeployment();
+  myNft.waitForDeployment();
 
   // 输出合约地址
-  console.log(`NFT 已部署到 Sepolia 测试网：${myNFT.target}`);
+  console.log(`NFT 已部署到 Sepolia 测试网：${myNft.target}`);
 }
 
 // 执行部署并处理错误

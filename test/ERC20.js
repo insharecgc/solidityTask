@@ -15,7 +15,7 @@ describe("ERC20", async () => {
         const ERC20 = await ethers.getContractFactory("ERC20");   //工厂模板
         erc20Contract = await ERC20.deploy("MyERC20", "TST", initialSupply);  //部署合约
         erc20Contract.waitForDeployment();
-
+        console.log("NFT deployed to:", erc20Contract.target);
         expect(await erc20Contract.name()).to.equal("MyERC20");
     })
 
