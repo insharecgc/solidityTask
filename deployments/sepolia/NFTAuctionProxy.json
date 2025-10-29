@@ -1,5 +1,5 @@
 {
-  "address": "0xe019f9D778a568007A50abdCB4615D12e2B81B47",
+  "address": "0x8F30d37B0d41E8c8ED21F41f1BAcf69c52437F86",
   "abi": [
     "error AddressEmptyCode(address)",
     "error ERC1967InvalidImplementation(address)",
@@ -17,11 +17,13 @@
     "event BidPlaced(address indexed,address indexed,uint256,uint256,address)",
     "event Initialized(uint64)",
     "event OwnershipTransferred(address indexed,address indexed)",
+    "event TransferNFT(address indexed,address indexed,uint256)",
     "event Upgraded(address indexed)",
     "function UPGRADE_INTERFACE_VERSION() view returns (string)",
     "function addPriceFeed(address,address)",
-    "function auctionInfo() view returns (address,uint256,uint256,uint256,bool,address,uint256,address,uint256,address,address,uint256)",
     "function endAuction()",
+    "function getAuctionInfo() view returns ((address,uint256,uint256,uint256,bool,address,uint256,address,uint256,address,address,uint256))",
+    "function getPriceFeed(address) view returns (address)",
     "function initialize(address,address,uint256,uint256,uint256,address,address,uint256)",
     "function onERC721Received(address,address,uint256,bytes) pure returns (bytes4)",
     "function owner() view returns (address)",

@@ -117,7 +117,7 @@ contract NFTAuctionFactory is
         // 在创建拍卖合约之后，将NFT转移给拍卖合约
         nft.transferFrom(msg.sender, auctionAddress, _tokenId);
 
-        console.log("NFTAuctionFactory - Auction created: %s", auctionAddress);
+        console.log("NFTAuctionFactory ------ Auction created: %s", auctionAddress);
 
         emit AuctionCreated(auctionId, auctionAddress, msg.sender, _nftContract, _tokenId);
     }

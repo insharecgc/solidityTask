@@ -9,6 +9,7 @@ describe("Local Test NFTAuction", async function () {
     let nft;
     let auctionProxy;
     let auctionFactoryProxy;
+    let factoryImplAddress;
     let deployer;
     let user1;
     let user2;
@@ -68,7 +69,7 @@ describe("Local Test NFTAuction", async function () {
         console.log("NFTAuctionFactory deployed to:", auctionFactoryProxy.target);
         const factoryProxyAddress = await auctionFactoryProxy.getAddress()
         console.log("NFTAuctionFactory代理合约地址：", factoryProxyAddress);
-        const factoryImplAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+        factoryImplAddress = await upgrades.erc1967.getImplementationAddress(factoryProxyAddress);
         console.log("NFTAuctionFactory实现合约地址：", factoryImplAddress);
 
         // 给用户1 mint一个NFT
@@ -92,15 +93,26 @@ describe("Local Test NFTAuction", async function () {
             let owner = await nft.ownerOf(10);
             console.log("NFT拍卖创建好之前，NFT的owner:", owner);
 
+            // 监听合约创建成功事件
+            const emittedEvent = new Promise((resolve) => {
+                auctionFactoryProxy.once("AuctionCreated", (...args) => {
+                    resolve(args);
+                });
+            });
+
             // 用户1用10号NFT创建拍卖，用ETH支付，持续2秒，起拍价1000000 wei (在创建拍卖合约前，需要上面的NFT合约授权拍卖工厂合约转移NFT)
             let tx = await auctionFactoryProxy.connect(user1).createAuction(nft.target, 2, 1000000, 10, ethers.ZeroAddress);
             await tx.wait();
             // 2. 获取创建的合约地址
             const nftAuction = await auctionFactoryProxy.getAuctionAddress(1);
             console.log("Auction created, address:", nftAuction);
-            // 验证事件
+
+            // 验证事件参数
             await expect(tx).to.emit(auctionFactoryProxy, "AuctionCreated")
                 .withArgs(1, nftAuction, user1.address, nft.target, 10);
+            // 得到合约创建事件的参数
+            const [auctionId, auctionAddress, seller, tokenId, duration] = await emittedEvent;
+            console.log("Auction created, auctionId:", auctionId, "auctionAddress:", auctionAddress, "seller:", seller, "tokenId:", tokenId, "duration:", duration);
 
             // 工厂合约创建了拍卖合约实例，根据得到的拍卖合约地址，调用getAuctionStatus方法，验证拍卖状态
             const NFTAuction = await ethers.getContractFactory("NFTAuction");
