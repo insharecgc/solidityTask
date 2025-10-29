@@ -42,7 +42,7 @@ contract NFTAuction is
         uint256 auctionId;  //拍卖ID
     }
 
-    Auction public auctionInfo; // 拍卖信息存储
+    Auction private auctionInfo; // 拍卖信息存储
 
     /**
      * eth(address(0)) => 0x694AA1769357215DE4FAC081bf1f309aDC325306 ETH/USD
@@ -163,6 +163,14 @@ contract NFTAuction is
         priceFeeds[_tokenAddress] = AggregatorV3Interface(_priceFeedAddress);
     }
 
+    function getAuctionInfo() public view returns (Auction memory) {
+        return auctionInfo;
+    }
+
+    function getPriceFeed(address _tokenAddress) public view returns (address) {
+        return address(priceFeeds[_tokenAddress]);
+    }
+
     /**
      * @dev 竞拍出价
      * @notice 出价金额必须大于0、必须大于起拍价格、必须大于当前最高出价
@@ -238,14 +246,14 @@ contract NFTAuction is
 
         if (auctionInfo.highestBidder != address(0)) {
             // 如果有人出价，则将NFT转给最高出价者，扣除手续费后把剩余的金额转给卖家
-            console.log("has bidder, transfer nft to bidder");
+            console.log("has bidder, transfer nft to bidder:", auctionInfo.highestBidder);
             nft.safeTransferFrom(address(this), auctionInfo.highestBidder, auctionInfo.tokenId);
 
             // 计算手续费，从工厂函数计算手续费，（手续费可由工厂管理员设置）
             (uint256 feeAmount, uint256 sellerAmount) = _calculateFeeAndSellerAmount(auctionInfo.highestBid);
 
             // 转给卖家
-            console.log("transfer eth to seller");
+            console.log("transfer eth to seller:", auctionInfo.seller);
             _refund(auctionInfo.seller, auctionInfo.payToken, sellerAmount);
 
             // 把手续费转给平台，从工厂函数获取平台地址
@@ -254,7 +262,7 @@ contract NFTAuction is
             emit TransferNFT(auctionInfo.nftContract, auctionInfo.highestBidder, auctionInfo.tokenId);
         } else {
             // 如果无人出价，则将NFT转回给卖家
-            console.log("no bidder, return nft to seller");
+            console.log("no bidder, return nft to seller:", auctionInfo.seller);
             nft.safeTransferFrom(address(this), auctionInfo.seller, auctionInfo.tokenId);
             emit TransferNFT(auctionInfo.nftContract, auctionInfo.seller, auctionInfo.tokenId);
         }

@@ -19,7 +19,6 @@ contract NFTAuctionFactory is
     OwnableUpgradeable
 {
     mapping(uint256 => address) private auctionAddressMap; // 拍卖ID到拍卖合约地址的映射
-    mapping(uint256 => NFTAuction) private auctionContractMap; // 拍卖ID到拍卖合约的映射
     address private nftAuctionImplementation; // NFTAuction拍卖合约的代理地址
     address private platformFeeRecipient; // 平台手续费接收地址
     uint256 private platformFeePercentage; // 平台手续费比例（万分之为单位，100 = 1%）
@@ -75,7 +74,7 @@ contract NFTAuctionFactory is
         uint256 _startPrice,
         uint256 _tokenId,
         address _payToken
-    ) external returns (uint256) {
+    ) external {
         require(_nftContract != address(0), "nftContract not be 0x0");
         require(_duration > 0, "duration need > 0");
         require(_startPrice > 0, "startPrice need > 0");
@@ -106,7 +105,6 @@ contract NFTAuctionFactory is
         );
 
         address auctionAddress = address(auction);
-        auctionContractMap[auctionId] = auction;
         auctionAddressMap[auctionId] = auctionAddress;
         nextAuctionId++;
 
@@ -116,7 +114,6 @@ contract NFTAuctionFactory is
         console.log("NFTAuctionFactory - Auction created: %s", auctionAddress);
 
         emit AuctionCreated(auctionId, auctionAddress, msg.sender, _nftContract, _tokenId);
-        return auctionId;
     }
 
     /**
@@ -148,10 +145,6 @@ contract NFTAuctionFactory is
     
     function getAuctionAddress(uint256 auctionId) external view returns (address) {
         return auctionAddressMap[auctionId];
-    }
-
-    function getAuctionContract(uint256 auctionId) external view returns (NFTAuction) {
-        return auctionContractMap[auctionId];
     }
 
     function getNftAuctionImplementation() external view returns (address) {
