@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import "./NFTAuction.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -90,10 +91,16 @@ contract NFTAuctionFactory is
             "Not approved"
         );
 
-        // 创建新的拍卖合约
-        NFTAuction auction = NFTAuction(Clones.clone(nftAuctionImplementation));
         uint256 auctionId = nextAuctionId;
-        auction.initialize(
+        // 创建新的拍卖合约
+        // 1. 部署ERC1967代理合约（UUPS兼容的代理），指向实现合约
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            nftAuctionImplementation,
+            "" // 初始化数据暂为空，后续单独调用initialize
+        );
+        // 2. 调用代理合约的initialize函数（初始化状态）
+        address auctionAddress = address(proxy);
+        NFTAuction(payable(auctionAddress)).initialize(
             msg.sender,
             _nftContract,
             _duration,
@@ -104,7 +111,6 @@ contract NFTAuctionFactory is
             auctionId
         );
 
-        address auctionAddress = address(auction);
         auctionAddressMap[auctionId] = auctionAddress;
         nextAuctionId++;
 

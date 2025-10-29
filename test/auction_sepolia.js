@@ -5,7 +5,7 @@ describe("Sepolia Test NFTAuction", async function () {
     this.timeout(60000); // 设置超时为60秒
 
     const myNFT = "0x4E8Ef74A824d4ef1C83D7c231c4bed5f4a0a6115";   // task2下的NFT在Sepolia下合约地址
-    const nftAuctionProxy = "0xe019f9D778a568007A50abdCB4615D12e2B81B47";    // Sepolia下的NFT拍卖代理合约地址
+    const nftAuction = "0x9ac537d956C4408bd72e5B8f52425BB93658072f";    // Sepolia下的NFT拍卖合约地址
     const nfgAuctionFactoryProxy = "0x2067F9a81E2dF1E5d815Ab6f2F8b66aAca4e7163";    // Sepolia下的NFT拍卖工厂代理合约地址
     const usdc = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";  // Sepolia下的USDC合约地址
     const ethPriceFeed = "0x694AA1769357215DE4FAC081bf1f309aDC325306";    // Sepolia下的ETH/USD价格喂价地址
@@ -33,7 +33,7 @@ describe("Sepolia Test NFTAuction", async function () {
         console.log("NFT合约地址:", nft.target);
 
         // 2.根据拍卖合约地址，拿到拍卖合约实例
-        auctionProxy = await ethers.getContractAt("NFTAuction", nftAuctionProxy);
+        auctionProxy = await ethers.getContractAt("NFTAuction", nftAuction);
         const proxyAddress = await auctionProxy.getAddress();
         console.log("NFTAuction代理合约地址：", proxyAddress);
 
@@ -96,6 +96,9 @@ describe("Sepolia Test NFTAuction", async function () {
             console.log("NFT拍卖创建成功，NFT的owner:", owner);
             expect(owner).to.equal(nftAuction);
 
+            let auctionInfo = await newAuction.getAuctionInfo();
+            console.log("111工厂创建的拍卖状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+
             // 用户2出价 0.1 USDC拍卖
             await newAuction.connect(user2).placeBid(usdc, 10000000)
             console.log("User2 placed bid of 0.1 USDC");
@@ -104,6 +107,9 @@ describe("Sepolia Test NFTAuction", async function () {
             console.log("Highest bidder address:", highestBidder);
             expect(highestBidder).to.equal(user2.address);
 
+            auctionInfo = await newAuction.getAuctionInfo();
+            console.log("用户2出价后拍卖状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+
             // deployer出价0.001 ETH拍卖
             await newAuction.connect(deployer).placeBid(ethers.ZeroAddress, ethers.parseEther("0.001"));
             // 验证deployer出价成功
@@ -111,13 +117,19 @@ describe("Sepolia Test NFTAuction", async function () {
             console.log("Highest bidder address:", highestBidder);
             expect(highestBidder).to.equal(deployer.address);
 
+            auctionInfo = await newAuction.getAuctionInfo();
+            console.log("deployer出价后拍卖状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+
             // 2秒后调用结束拍卖，验证NFT被回退到用户1地址
             await sleep(2000);
             await newAuction.endAuction();
 
+            auctionInfo = await newAuction.getAuctionInfo();
+            console.log("拍卖结束后状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+
             owner = await nft.ownerOf(10);
             console.log("NFT拍卖结束后，NFT的owner:", owner);
-            // expect(owner).to.equal(user1.address);
+            expect(owner).to.equal(user1.address);
         });
     });
 

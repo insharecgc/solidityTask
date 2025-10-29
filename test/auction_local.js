@@ -58,7 +58,7 @@ describe("Local Test NFTAuction", async function () {
         const NFTAuctionFactory = await ethers.getContractFactory("NFTAuctionFactory");
         auctionFactoryProxy = await upgrades.deployProxy(NFTAuctionFactory,
             [
-                proxyAddress,
+                implAddress,
                 deployer.address,
                 600, // 6%手续费
             ],
@@ -113,10 +113,9 @@ describe("Local Test NFTAuction", async function () {
             expect(owner).to.equal(nftAuction);
 
             try {
-                // TODO: 这里调用getAuctionInfo报错，提示ABI错误，需要确认下原因 ????????????????????????
-                await newAuction.getAuctionInfo();
-                let auctionInfo =
-                    console.log("拍卖状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+                // TODO: 这里调用getAuctionInfo报错，提示ABI错误，需要确认下原因 ????????????????????????                
+                let auctionInfo = await newAuction.getAuctionInfo();
+                console.log("工厂创建的拍卖状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
             } catch (error) {
                 console.error("Error fetching auction info:", error);
             }
@@ -128,7 +127,7 @@ describe("Local Test NFTAuction", async function () {
 
             owner = await nft.ownerOf(10);
             console.log("NFT拍卖结束后，NFT的owner:", owner);
-            // expect(owner).to.equal(user1.address);
+            expect(owner).to.equal(user1.address);
         });
     });
 });
