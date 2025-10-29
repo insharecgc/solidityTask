@@ -282,7 +282,7 @@ contract NFTAuction is
         priceFeeds[address(0)] = AggregatorV3Interface(
             0x694AA1769357215DE4FAC081bf1f309aDC325306
         ); // ETH/USD
-        priceFeeds[ 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238] = AggregatorV3Interface(
+        priceFeeds[0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238] = AggregatorV3Interface(
             0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E
         ); // USDC/USD
     }

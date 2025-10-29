@@ -6,7 +6,7 @@ function sleep(ms) {
 }
 
 describe("Sepolia Test NFTAuction", async function () {
-    this.timeout(60000); // 设置超时为60秒
+    this.timeout(120000); // 设置超时为60秒
 
     const myNFT = "0x4E8Ef74A824d4ef1C83D7c231c4bed5f4a0a6115";   // task2下的NFT在Sepolia下合约地址
     const nftAuction = "0x9d70f55Fbe65F020eD1C3d2047D920372DfC92a0";    // Sepolia下的NFT拍卖合约地址
@@ -52,108 +52,112 @@ describe("Sepolia Test NFTAuction", async function () {
         console.log("NFTAuctionFactory代理合约地址：", factoryProxyAddress);
 
         
-        mintTokenId = 5;
+        mintTokenId = 6;
         // 给用户1 mint一个NFT
-        // await nft.connect(deployer).mint(user1.address, mintTokenId, "https://ipfs.io/ipfs/bafkreihyf3rp64dmhmrlionfmbw22rnvckslwylecsxeshuyafoj6fpmmu");
-        // console.log("Minted NFT to user1 success");
+        const tx = await nft.connect(deployer).mint(user1.address, mintTokenId, "https://ipfs.io/ipfs/bafkreihyf3rp64dmhmrlionfmbw22rnvckslwylecsxeshuyafoj6fpmmu");
+        await tx.wait(3);   // 等待3个区块确认
+        console.log("Minted NFT to user1 success");
         owner = await nft.ownerOf(mintTokenId);
-        console.log("=====================当前NFT拥有者owner:", owner);
+        console.log("====当前NFT拥有者owner:", owner);
     });
 
     describe("User 1 Create Auction", function () {
         it("Should create a new auction successfully", async function () {
             // 未授权时，getApproved 返回零地址
-            // let approvedAddress = await nft.getApproved(mintTokenId)
-            // expect(approvedAddress).to.equal(ethers.ZeroAddress);    // 前面测试过了，已经授权过了，就不会再是0地址了，首次mint出来，验证就是通过的
+            let approvedAddress = await nft.getApproved(mintTokenId)
+            expect(approvedAddress).to.equal(ethers.ZeroAddress);    // 前面测试过了，已经授权过了，就不会再是0地址了，首次mint出来，验证就是通过的
             
             /** --------------------------创建拍卖------------------------ */
-            // console.log("Testing create auctionFactoryProxy...", auctionFactoryProxy.target);
-            // // 用户1授权拍卖工厂合约转移NFT
-            // await nft.connect(user1).approve(auctionFactoryProxy.target, mintTokenId);
-            // console.log("Approved NFT to factory");
-            // // 验证授权地址
-            // approvedAddress = await nft.getApproved(mintTokenId)
-            // // expect(approvedAddress).to.equal(auctionFactoryProxy.target);
+            console.log("Testing create auctionFactoryProxy...", auctionFactoryProxy.target);
+            // 用户1授权拍卖工厂合约转移NFT
+            let tx = await nft.connect(user1).approve(auctionFactoryProxy.target, mintTokenId);
+            await tx.wait(3);
+            console.log("Approved NFT to factory");
+            // 验证授权地址
+            approvedAddress = await nft.getApproved(mintTokenId)
+            // expect(approvedAddress).to.equal(auctionFactoryProxy.target);
 
-            // // 监听合约创建成功事件
-            // const emittedEvent = new Promise((resolve) => {
-            //     auctionFactoryProxy.once("AuctionCreated", (...args) => {
-            //         resolve(args);
-            //     });
-            // });
+            // 监听合约创建成功事件
+            const emittedEvent = new Promise((resolve) => {
+                auctionFactoryProxy.once("AuctionCreated", (...args) => {
+                    resolve(args);
+                });
+            });
 
             // // 用户1用3号NFT创建拍卖，用ETH支付，持续2秒，起拍价1000000 wei
-            // const tx = await auctionFactoryProxy.connect(user1).createAuction(nft.target, 600, 1000000, mintTokenId, ethers.ZeroAddress);
-            // await tx.wait();
-            // // 得到合约创建事件的参数
-            // const [auctionId, auctionAddress, seller, tokenId, duration] = await emittedEvent;
-            // // 不用后移除监听器
-            // auctionFactoryProxy.removeAllListeners("AuctionCreated");            
-            // console.log("Auction created with auctionId:", auctionId.toString(), "and address:", auctionAddress);
-            // // 通过拍卖ID查询拍卖合约地址，验证拍卖合约地址与事件中拍卖合约地址一致
-            // const nftAuction = await auctionFactoryProxy.getAuctionAddress(auctionId);
-            // console.log("Auction created:", nftAuction);
+            tx = await auctionFactoryProxy.connect(user1).createAuction(nft.target, 300, 1000000, mintTokenId, ethers.ZeroAddress);
+            await tx.wait(3);
+            // 得到合约创建事件的参数
+            const [auctionId, auctionAddress, seller, tokenId, duration] = await emittedEvent;
+            // 不用后移除监听器
+            auctionFactoryProxy.removeAllListeners("AuctionCreated");            
+            console.log("Auction created with auctionId:", auctionId.toString(), "and address:", auctionAddress);
+            // 通过拍卖ID查询拍卖合约地址，验证拍卖合约地址与事件中拍卖合约地址一致
+            const nftAuction = await auctionFactoryProxy.getAuctionAddress(auctionId);
+            console.log("Auction created:", nftAuction);
             
             /** -------------------------END------------------------- */
 
             /** -------------------------验证信息------------------------- */
             // 前面已经通过，所以这里直接取值
-            const auctionId = 7;
-            const tokenId = 5;
-            const nftAuction = "0x7B174b6aD89e476412AcD1e4c0F23B5BaF7E61cC";
+            // const auctionId = 7;
+            // const tokenId = 5;
+            // const nftAuction = "0x7B174b6aD89e476412AcD1e4c0F23B5BaF7E61cC";
 
             // 工厂合约创建了拍卖合约实例，根据得到的拍卖合约地址，调用getAuctionStatus方法，验证拍卖状态
             const NFTAuction = await ethers.getContractFactory("NFTAuction");
             const newAuction = NFTAuction.attach(nftAuction);
             // const newAuction = await ethers.getContractAt("NFTAuction", nftAuction);     // 这两种方式都可以获取到合约实例
             // 验证NFT的owner是否为拍卖合约地址
-            // owner = await nft.ownerOf(tokenId);
-            // console.log("NFT拍卖创建成功，NFT的owner:", owner);
-            // expect(owner).to.equal(nftAuction);     // 校验nft目前属于拍卖合约
+            owner = await nft.ownerOf(tokenId);
+            console.log("NFT拍卖创建成功，NFT的owner:", owner);
+            expect(owner).to.equal(nftAuction);     // 校验nft目前属于拍卖合约
             // 创建后直接获取拍卖信息，拍卖状态应为未结束，最高出价者应为零地址，最高出价为0
             let auctionInfo = await newAuction.getAuctionInfo();
             console.log("111工厂创建的拍卖状态信息: ended =", auctionInfo.ended, ", payToken =", auctionInfo.payToken, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
-            // expect(auctionInfo.ended).to.equal(false);
-            // expect(auctionInfo.highestBidder).to.equal(ethers.ZeroAddress);
-            // expect(auctionInfo.highestBid).to.equal(0);
+            expect(auctionInfo.ended).to.equal(false);
+            expect(auctionInfo.highestBidder).to.equal(ethers.ZeroAddress);
+            expect(auctionInfo.highestBid).to.equal(0);
             /** -------------------------END------------------------- */
 
             /** -----------------------------出价---------------------------- */
-            // 用户2出价 0.1 USDC拍卖
-            // await newAuction.connect(user2).placeBid(usdc, 10000000)
-            // console.log("User2 placed bid of 0.1 USDC");
-            // // 验证用户2出价成功
-            // auctionInfo = await newAuction.getAuctionInfo();
-            // console.log("Highest bidder address:", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
-            // // expect(highestBidder).to.equal(user2.address);
-            // // 验证用户2出价后拍卖状态，最高出价者应为用户2，最高出价为0.1 USDC
-            // expect(auctionInfo.ended).to.equal(false);
-            // expect(auctionInfo.highestBidder).to.equal(user2.address);
-            // expect(auctionInfo.highestBid).to.equal(10000000);
+            // 用户2出价 1 USDC拍卖
+            tx = await newAuction.connect(user2).placeBid(usdc, 1)
+            await tx.wait(3);
+            console.log("User2 placed bid of 1 USDC");
+            // 验证用户2出价成功
+            auctionInfo = await newAuction.getAuctionInfo();
+            console.log("Highest bidder address:", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+            // expect(highestBidder).to.equal(user2.address);
+            // 验证用户2出价后拍卖状态，最高出价者应为用户2，最高出价为0.1 USDC
+            expect(auctionInfo.ended).to.equal(false);
+            expect(auctionInfo.highestBidder).to.equal(user2.address);
+            expect(auctionInfo.highestBid).to.equal(10000000);
 
-            // // deployer出价0.001 ETH拍卖
-            // await newAuction.connect(deployer).placeBid(ethers.ZeroAddress, ethers.parseEther("0.001"), {value: ethers.parseEther("0.001")});
-            // // 验证deployer出价成功
-            // auctionInfo = await newAuction.getAuctionInfo();
-            // console.log("Highest bidder address:", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
-            // // expect(highestBidder).to.equal(deployer.address);
-            // // 验证deployer出价后拍卖状态，最高出价者应为deployer，最高出价为0.001 ETH
-            // expect(auctionInfo.ended).to.equal(false);
-            // expect(auctionInfo.highestBidder).to.equal(deployer.address);
-            // expect(auctionInfo.highestBid).to.equal(ethers.parseEther("0.001"));
+            // deployer出价0.001 ETH拍卖
+            tx = await newAuction.connect(deployer).placeBid(ethers.ZeroAddress, ethers.parseEther("0.001"), {value: ethers.parseEther("0.001")});
+            await tx.wait(3);
+            // 验证deployer出价成功
+            auctionInfo = await newAuction.getAuctionInfo();
+            console.log("Highest bidder address:", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+            expect(highestBidder).to.equal(deployer.address);
+            // 验证deployer出价后拍卖状态，最高出价者应为deployer，最高出价为0.001 ETH
+            expect(auctionInfo.ended).to.equal(false);
+            expect(auctionInfo.highestBidder).to.equal(deployer.address);
+            expect(auctionInfo.highestBid).to.equal(ethers.parseEther("0.001"));
 
             /** -------------------------END------------------------- */
 
-            // 2秒后调用结束拍卖，验证NFT被回退到用户1地址
-            await sleep(2000);
-            await newAuction.endAuction();
-            // 验证拍卖结束，最高出价者应为deployer，最高出价为0.001 ETH，
-            auctionInfo = await newAuction.getAuctionInfo();
-            console.log("拍卖结束后状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
-            // 验证拍卖结束后，deployer竞拍成功，成为NFT的owner
-            owner = await nft.ownerOf(tokenId);
-            console.log("NFT拍卖结束后，NFT的owner:", owner);
-            // // expect(owner).to.equal(deployer.address);
+            // 最后单独调用结束拍卖，验证NFT被回退到用户1地址
+            // tx = await newAuction.endAuction();
+            // await tx.wait(3);
+            // // 验证拍卖结束，最高出价者应为deployer，最高出价为0.001 ETH，
+            // auctionInfo = await newAuction.getAuctionInfo();
+            // console.log("拍卖结束后状态信息: ended =", auctionInfo.ended, ", highestBidder =", auctionInfo.highestBidder, ", highestBid =", auctionInfo.highestBid);
+            // // 验证拍卖结束后，deployer竞拍成功，成为NFT的owner
+            // owner = await nft.ownerOf(tokenId);
+            // console.log("NFT拍卖结束后，NFT的owner:", owner);
+            // expect(owner).to.equal(deployer.address);
         });
     });
 
