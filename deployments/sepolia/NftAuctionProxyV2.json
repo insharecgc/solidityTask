@@ -29,6 +29,7 @@
     "function placeBid(address,uint256) payable",
     "function proxiableUUID() view returns (bytes32)",
     "function renounceOwnership()",
+    "function testHello() pure returns (string)",
     "function transferOwnership(address)",
     "function upgradeToAndCall(address,bytes) payable"
   ],

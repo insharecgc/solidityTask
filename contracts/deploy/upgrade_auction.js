@@ -37,7 +37,7 @@ async function main() {
         })
     );
     await save("NFTAuctionProxyV2", {
-        abi: NFTAuction.interface.format("json"),
+        abi: NftAuctionV2.interface.format("json"),
         address: proxyAddressV2,
     })
 }
