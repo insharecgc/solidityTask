@@ -1,6 +1,6 @@
 {
-    "proxyFactoryAddress": "0xf526764F9E062cC6Bc1D211CFf228Ef0F122BBa4",
-    "implFactoryAddress": "0xD5284a671f0C3AB6bf4eE628608691c698911E18",
+    "proxyFactoryAddress": "0x55044beeF81Facf69d6A655cea558A3F723a7486",
+    "implFactoryAddress": "0xedb9F5F7902753Da7E21b9b0e98274e13c1c97C5",
     "abi": [
         "error AddressEmptyCode(address)",
         "error ERC1967InvalidImplementation(address)",

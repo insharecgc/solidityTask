@@ -11,15 +11,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-
 import {console} from "hardhat/console.sol";
 
 /**
  * @title NFT拍卖合约
  * @notice 实现NFT的拍卖功能，支持ETH和ERC20参与竞拍，价格以USD计价，集成chainlink预言机获取实时价格，使用UUPS升级模式
  */
-contract NFTAuction is
+contract LocalAuction is
     IERC721Receiver,
     Initializable,
     UUPSUpgradeable,
@@ -44,12 +42,7 @@ contract NFTAuction is
 
     Auction private auctionInfo; // 拍卖信息存储
 
-    /**
-     * eth(address(0)) => 0x694AA1769357215DE4FAC081bf1f309aDC325306 ETH/USD
-     * usdc => 0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E USDC/USD
-     * 初始化默认添加以上两个币对，管理员可以添加更多映射
-     */
-    mapping(address => AggregatorV3Interface) private priceFeeds; // 价格预言机，统一为【代币/USD】的喂价
+    mapping(address => uint256) private priceFeeds; // 模拟喂价映射，payToken地址 => USD价格
 
     // 拍卖创建事件
     event AuctionCreated(
@@ -121,9 +114,7 @@ contract NFTAuction is
 
         // 如果是ERC20代币，需要交易拍卖是否支持此代币
         if (_payToken != address(0)) {
-            AggregatorV3Interface feed = priceFeeds[_payToken];
-            // 校验拍卖合约是否此支持_payToken代币来进行拍卖，可由管理员添加映射
-            require(address(feed) != address(0), "payToken not support");
+            require(priceFeeds[_payToken] == 0, "payToken not support");
         }
 
         auctionInfo = Auction({
@@ -153,21 +144,12 @@ contract NFTAuction is
         );
     }
 
-    // 合约创建者可添加价格预言机，以支持更多代币竞拍
-    // function addPriceFeed(
-    //     address _tokenAddress,
-    //     address _priceFeedAddress
-    // ) external onlyOwner {
-    //     require(_priceFeedAddress != address(0), "priceFeedAddress not be 0x0");
-    //     priceFeeds[_tokenAddress] = AggregatorV3Interface(_priceFeedAddress);
-    // }
-
     function getAuctionInfo() public view returns (Auction memory) {
         return auctionInfo;
     }
 
-    function getPriceFeed(address _tokenAddress) public view returns (address) {
-        return address(priceFeeds[_tokenAddress]);
+    function getPriceFeed(address _tokenAddress) public view returns (uint256) {
+        return priceFeeds[_tokenAddress];
     }
 
     /**
@@ -278,12 +260,8 @@ contract NFTAuction is
     // 初始化价格预言机喂价代币类型
     // TODO 讲道理这里只应该添加ETH就好了，至于支持哪些ERC代币参与竞拍由卖家决定，卖家在设置拍卖规则的时候，可以设置哪些ERC代币
     function _initPriceFeeds() internal {
-        priceFeeds[address(0)] = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        ); // ETH/USD
-        priceFeeds[0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238] = AggregatorV3Interface(
-            0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E
-        ); // USDC/USD
+        priceFeeds[address(0)] = 393890988244; // ETH/USD
+        priceFeeds[0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238] = 1000000; // USDC/USD
     }
 
     // 辅助函数：计算出价的 USD 价值
@@ -291,13 +269,8 @@ contract NFTAuction is
         address _payToken,
         uint256 _amount
     ) internal view returns (uint256) {
-        AggregatorV3Interface feed = priceFeeds[_payToken];
-        require(address(feed) != address(0), "Price feed not set for payToken");
-        
-        (, int256 priceRaw, , , ) = feed.latestRoundData();
-        require(priceRaw > 0, "Invalid price from feed");
-        uint256 price = uint256(priceRaw);
-        uint256 feedDecimal = feed.decimals();
+        uint256 price = priceFeeds[_payToken];  // 获取价格预言机喂价
+        uint256 feedDecimal = 8; // 模拟喂价小数位数均为8位
         if (address(0) == _payToken) {
             return price * _amount / (10**(12 + feedDecimal));  // ETH 10**(18 + feedDecimal - 6) = 10**(12 + feedDecimal)
         } else {
@@ -307,12 +280,8 @@ contract NFTAuction is
 
     // 计算当前拍卖最高出价的 USD 价值
     function _getHightestUSDValue() internal view returns (uint256) {
-        AggregatorV3Interface feed = priceFeeds[auctionInfo.payToken];
-        require(address(feed) != address(0), "Price feed not set for payToken");
-        (, int256 priceRaw, , , ) = feed.latestRoundData();
-        require(priceRaw > 0, "Invalid price from feed");
-        uint256 price = uint256(priceRaw); // 获取价格预言机喂价
-        uint256 feedDecimal = feed.decimals(); // 获取价格预言机小数位数
+        uint256 price = priceFeeds[auctionInfo.payToken];  // 获取价格预言机喂价
+        uint256 feedDecimal = 8; // 模拟喂价小数位数均为8位
 
         // 获取当前最高出价，默认为起拍价格，如果有人出价，则最高出价为最高出价
         uint256 hightestAmount = auctionInfo.startPrice;

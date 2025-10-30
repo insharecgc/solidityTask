@@ -4,12 +4,16 @@ const { ethers, upgrades, deployments } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
     const { save } = deployments;
     // 获取部署者账户
-    const [deployer] = await ethers.getSigners(); 
+    const [deployer] = await ethers.getSigners();
     console.log("部署用户地址：:", deployer.address);
-    
+
     console.log("开始部署拍卖代理合约...");
     const nftContract = "0x4E8Ef74A824d4ef1C83D7c231c4bed5f4a0a6115";
     const tokenId = 1;
@@ -41,7 +45,7 @@ async function main() {
     console.log("代理拍卖合约部署完成，信息保存成功");
 
     // ----------------------------------------------------------------------------
-
+    await sleep(20000);
     //通过代理合约部署拍卖工厂合约 （需要先把拍卖合约部署好，然后取得拍卖合约的代理地址，作为第一个参数）
     console.log("开始部署拍卖工厂代理合约...")
     // implAddress = "0x9ac537d956C4408bd72e5B8f52425BB93658072f"    // 上面部署成功的拍卖合约地址
@@ -76,8 +80,8 @@ async function main() {
 
 // 执行部署并处理错误
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });

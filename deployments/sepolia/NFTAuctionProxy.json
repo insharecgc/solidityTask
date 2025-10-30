@@ -1,5 +1,5 @@
 {
-  "address": "0x8F30d37B0d41E8c8ED21F41f1BAcf69c52437F86",
+  "address": "0x7ffD8f8525613DD3B603eFbF10a65e5E72bfB551",
   "abi": [
     "error AddressEmptyCode(address)",
     "error ERC1967InvalidImplementation(address)",
@@ -20,7 +20,6 @@
     "event TransferNFT(address indexed,address indexed,uint256)",
     "event Upgraded(address indexed)",
     "function UPGRADE_INTERFACE_VERSION() view returns (string)",
-    "function addPriceFeed(address,address)",
     "function endAuction()",
     "function getAuctionInfo() view returns ((address,uint256,uint256,uint256,bool,address,uint256,address,uint256,address,address,uint256))",
     "function getPriceFeed(address) view returns (address)",
