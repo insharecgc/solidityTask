@@ -180,7 +180,7 @@ contract NFTAuction is
     function placeBid(
         address _payToken,
         uint256 _amount
-    ) public payable {
+    ) public payable virtual {
         require(
             !auctionInfo.ended &&
             block.timestamp < auctionInfo.startTime + auctionInfo.duration,
@@ -235,7 +235,7 @@ contract NFTAuction is
     /**
      * @dev 结束拍卖，需要在拍卖结束时间之后手动调用
      */
-    function endAuction() public {
+    function endAuction() public virtual {
         // 拍卖结束只能被成功调用一次，调用成功后ended置为true
         require(!auctionInfo.ended, "auction had ended");
         require(block.timestamp >= auctionInfo.startTime + auctionInfo.duration, "auction not ended");
@@ -292,7 +292,7 @@ contract NFTAuction is
     function _calculateBidUSDValue(
         address _payToken,
         uint256 _amount
-    ) internal view returns (uint256) {
+    ) internal view virtual returns (uint256) {
         AggregatorV3Interface feed = priceFeeds[_payToken];
         require(address(feed) != address(0), "Price feed not set for payToken");
         
@@ -308,7 +308,7 @@ contract NFTAuction is
     }
 
     // 计算当前拍卖最高出价的 USD 价值
-    function _getHightestUSDValue() internal view returns (uint256) {
+    function _getHightestUSDValue() internal view virtual returns (uint256) {
         AggregatorV3Interface feed = priceFeeds[auctionInfo.payToken];
         require(address(feed) != address(0), "Price feed not set for payToken");
         (, int256 priceRaw, , , ) = feed.latestRoundData();
@@ -329,7 +329,7 @@ contract NFTAuction is
     }
 
     // 通用退款/转账函数，处理ETH和ERC20资金
-    function _refund(address to, address tokenAddress, uint256 amount) internal nonReentrant {
+    function _refund(address to, address tokenAddress, uint256 amount) internal virtual nonReentrant {
         require(to != address(0), "Recipient address not be 0");
         require(amount > 0, "amount must be > 0");
         if (tokenAddress == address(0)) {
@@ -349,7 +349,7 @@ contract NFTAuction is
      * @param _amount 总金额
      * @return 手续费和卖家金额
      */
-    function _calculateFeeAndSellerAmount(uint256 _amount) internal returns (uint256, uint256) {
+    function _calculateFeeAndSellerAmount(uint256 _amount) internal virtual returns (uint256, uint256) {
         // 调用工厂合约获取手续费比例
         (bool success, bytes memory data) = auctionInfo.factory.call(
             abi.encodeWithSignature("calculateFee(uint256)", _amount)
@@ -360,7 +360,7 @@ contract NFTAuction is
         return (fee, _amount - fee);
     }
 
-    function _getPlatformFeeAddress() internal returns (address) {
+    function _getPlatformFeeAddress() internal virtual returns (address) {
         (bool success, bytes memory data) = auctionInfo.factory.call(
             abi.encodeWithSignature("getPlatformFeeRecipient()")
         );
