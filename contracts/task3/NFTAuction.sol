@@ -192,7 +192,8 @@ contract NFTAuction is
         } else {
             // ERC20 出价
             require(msg.value == 0, "ERC20 bid need not send ETH");
-            require(IERC20(auctionInfo.payToken).allowance(msg.sender, address(this)) >= _amount, "ERC20 allowance not enough");
+            // 查询用户是否授权拍卖合约可以操作该ERC20代币金额大于等于此次支付金额
+            require(IERC20(_payToken).allowance(msg.sender, address(this)) >= _amount, "ERC20 allowance not enough");
         }
         require(_amount > 0, "bid amount need > 0");    // 出价金额必须大于0
         require(msg.sender != auctionInfo.seller, "Seller cannot bid"); // 禁止卖家自己出价
@@ -205,14 +206,15 @@ contract NFTAuction is
         console.log("bidUSDValue", bidUSDValue);
         require(bidUSDValue > hightestUSD, "bid amount need > highestBid");
 
+        // 竞拍出价成功，如果是ERC20出价，则需要把出价金额转到本合约
         if (_payToken != address(0)) {
-            // 当前竞拍价为最高，把竞拍的ERC20金额转到本合约
             bool transferSuccess = IERC20(_payToken).transferFrom(msg.sender, address(this), _amount);
             require(transferSuccess, "ERC20 transfer failed");
         }
 
         if (auctionInfo.highestBidder != address(0) && auctionInfo.highestBid > 0) {
             // 存在上一个出价者，退还上一个出价者出价金额
+            console.log("refund last highest bidder:", auctionInfo.highestBidder);
             _refund(auctionInfo.highestBidder, auctionInfo.payToken, auctionInfo.highestBid);
         }
 
@@ -332,9 +334,11 @@ contract NFTAuction is
         require(amount > 0, "amount must be > 0");
         if (tokenAddress == address(0)) {
             // ETH 转账
+            console.log("transfer eth to bidder:", to);
             payable(to).transfer(amount);
         } else {
             // ERC20 转账
+            console.log("transfer erc20 to bidder:", to);
             bool success = IERC20(tokenAddress).transfer(to, amount);
             require(success, "ERC20 refund failed");
         }     

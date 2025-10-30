@@ -21,14 +21,12 @@ npx hardhat test ./test/ERC20.js
 
 # ERC20、NFT 部署合约到 Sepolia 测试网
 npx hardhat run ./contracts/deploy/deploy_ERC20.js --network sepolia
-npx hardhat run ./contracts/deploy/deploy_ERC20.js --network sepolia
-
 
 # 清理缓存目录
 npx hardhat clean
 
 
-### 实现一个 NFT 拍卖市场
+#### ---------------------实现一个 NFT 拍卖市场-----------------------
 任务目标
 1. 使用 Hardhat 框架开发一个 NFT 拍卖市场。
 2. 使用 Chainlink 的 feedData 预言机功能，计算 ERC20 和以太坊到美元的价格。
@@ -41,11 +39,31 @@ npx hardhat clean
 1. 使用 Hardhat 初始化项目： npx hardhat init
 2. 安装必要的依赖： npm install @openzeppelin/contracts @chainlink/contracts @nomiclabs/hardhat-ethers hardhat-deploy
 
-# 拍卖合约部署到 Sepolia 测试网
-npx hardhat run ./contracts/deploy/deploy_auction.js --network sepolia
+## ---------------------本地测试-----------------------
 
 # 本地测试拍卖合约
 npx hardhat test ./test/auction_local.js --network localhost
 
-# Sepolia 测试网测试拍卖合约
+# 这个是模拟USDC和喂价器完整测试功能
+npx hardhat test ./test/localAuction_local.js --network localhost    
+
+## ---------------------sepolia网测试-----------------------
+
+# 部署NFT合约到 Sepolia 测试网
+npx hardhat run ./contracts/deploy/deploy_NFT.js --network sepolia
+需要记录下NFT合约的地址，后面测试拍卖合约需要用到
+
+# 拍卖合约部署到 Sepolia 测试网
+npx hardhat run ./contracts/deploy/deploy_auction.js --network sepolia
+
+# Sepolia 测试网测试拍卖合约（测试前需要先部署NFT和拍卖合约到sepolia以上两条）
+拍卖合约部署后成功后，会在 ./contracts/deploy/.cache目录下，看到proxyNftAuction.json和proxyNftAuctionFactory.json两个文件
+分别是拍卖合约和拍卖工厂合约的地址，需要取拍卖合约的 implAddress（实现地址）和工厂合约下的 proxyFactoryAddress（工厂代理地址）
+设置到./test/auction_sepolia.js文件中，同时此文件还需要配置测试的nft地址，nft需要由deployer这个用户部署的
+sep_owner（即deployer），sep_user1（用户地址1），sep_user2（用户地址2，确保你的用户2地址拥有1USDC以上），需要配置成自己的账户
+最后需要在根目录下创建.env文件，配置好sepolia的可以和三个账户的私钥
+最后执行：
 npx hardhat test ./test/auction_sepolia.js --network sepolia
+
+# sepolia测试比较慢，需要耐心等待await tx.wait(3);等待3个区块确认了才能正常后续查询
+
