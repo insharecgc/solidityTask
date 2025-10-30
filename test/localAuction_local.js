@@ -6,9 +6,8 @@ function sleep(ms) {
 }
 
 describe("Local Test LocalAuction", async function () {
-    const usdc = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";  // 模拟定义的下的USDC合约地址
-
     let nft;
+    let usdc;
     let auctionProxy;
     let auctionFactoryProxy;
     let factoryImplAddress;
@@ -20,7 +19,7 @@ describe("Local Test LocalAuction", async function () {
         // 获取部署者账户
         [deployer, user1, user2, user3] = await ethers.getSigners();
         console.log("Deployer、user1、user2、user3", deployer.address, user1.address, user2.address, user3.address);
-        // 1.部署NFT合约
+        // 1.1部署NFT合约
         const NFT = await ethers.getContractFactory("NFT");
         nft = await NFT.deploy("MyNFT", "MyNFT");
         await nft.waitForDeployment();
@@ -29,10 +28,21 @@ describe("Local Test LocalAuction", async function () {
         await nft.connect(deployer).mint(deployer.address, 1, "https://ipfs.io/ipfs/bafkreihyf3rp64dmhmrlionfmbw22rnvckslwylecsxeshuyafoj6fpmmu");
         console.log("Minted NFT to deployer success");
 
+        // 1.2部署USDC合约
+        const USDC = await ethers.getContractFactory("USDC");
+        usdc = await USDC.deploy();
+        await usdc.waitForDeployment();
+        console.log("USDC deployed to:", usdc.target);
+        // 给用户mint一些USDC
+        await usdc.connect(deployer).mint(user1.address, 100 * 1000000); // mint 100 USDC给user2，USDC有6位小数
+        await usdc.connect(deployer).mint(user2.address, 100 * 1000000); // mint 100 USDC给user2，USDC有6位小数
+        await usdc.connect(deployer).mint(user3.address, 100 * 1000000); // mint 100 USDC给user2，USDC有6位小数
+        console.log("Minted USDC to deployer success");
+
         // 2.部署拍卖合约
         const LocalAuction = await ethers.getContractFactory("LocalAuction");
         auctionProxy = await upgrades.deployProxy(LocalAuction,
-            [deployer.address, nft.target, 1, 10000, 1, ethers.ZeroAddress, ethers.ZeroAddress, 0],
+            [usdc.target, deployer.address, nft.target, 1, 10000, 1, ethers.ZeroAddress, ethers.ZeroAddress, 0],
             { initializer: "initialize" }
         );
         await auctionProxy.waitForDeployment();
@@ -59,8 +69,8 @@ describe("Local Test LocalAuction", async function () {
         console.log("拍卖结束后查询拍卖状态信息: ended =", auctionInfo.ended, ", seller =", auctionInfo.seller, "tokenId =", auctionInfo.tokenId, ", highestBid =", auctionInfo.highestBid);
 
         // 3.部署拍卖工厂合约（调用initialize，要用到上面拍卖合约的代理合约地址）
-        const NFTAuctionFactory = await ethers.getContractFactory("NFTAuctionFactory");
-        auctionFactoryProxy = await upgrades.deployProxy(NFTAuctionFactory,
+        const LocalAuctionFactory = await ethers.getContractFactory("LocalAuctionFactory");
+        auctionFactoryProxy = await upgrades.deployProxy(LocalAuctionFactory,
             [
                 implAddress,
                 deployer.address,
@@ -69,11 +79,11 @@ describe("Local Test LocalAuction", async function () {
             { initializer: "initialize" }
         );
         await auctionFactoryProxy.waitForDeployment();
-        console.log("NFTAuctionFactory deployed to:", auctionFactoryProxy.target);
+        console.log("LocalAuctionFactory deployed to:", auctionFactoryProxy.target);
         const factoryProxyAddress = await auctionFactoryProxy.getAddress()
-        console.log("NFTAuctionFactory代理合约地址：", factoryProxyAddress);
+        console.log("LocalAuctionFactory 代理合约地址：", factoryProxyAddress);
         factoryImplAddress = await upgrades.erc1967.getImplementationAddress(factoryProxyAddress);
-        console.log("NFTAuctionFactory实现合约地址：", factoryImplAddress);
+        console.log("LocalAuctionFactory 实现合约地址：", factoryImplAddress);
 
         // 给用户1 mint一个NFT
         await nft.connect(deployer).mint(user1.address, 10, "https://ipfs.io/ipfs/bafkreihyf3rp64dmhmrlionfmbw22rnvckslwylecsxeshuyafoj6fpmmu");
@@ -104,7 +114,7 @@ describe("Local Test LocalAuction", async function () {
             });
 
             // 用户1用10号NFT创建拍卖，用ETH支付，持续2秒，起拍价1000000 wei (在创建拍卖合约前，需要上面的NFT合约授权拍卖工厂合约转移NFT)
-            let tx = await auctionFactoryProxy.connect(user1).createAuction(nft.target, 2, 1000000, 10, ethers.ZeroAddress);
+            let tx = await auctionFactoryProxy.connect(user1).createAuction(usdc.target, nft.target, 2, 1000000, 10, ethers.ZeroAddress);
             await tx.wait();
             // 2. 获取创建的合约地址
             const nftAuction = await auctionFactoryProxy.getAuctionAddress(1);
@@ -135,8 +145,8 @@ describe("Local Test LocalAuction", async function () {
             }
 
             // 用户2 USDC出价
-            console.log("User2 出价 100最小单位 USDC(6位小数)");
-            tx = await newAuction.connect(user2).placeBid(usdc, 100)
+            console.log("User2 出价 10USDC");
+            tx = await newAuction.connect(user2).placeBid(usdc.target, 10 * 1000000)
             await tx.wait();
             console.log("User2 出价成功");
             auctionInfo = await newAuction.getAuctionInfo();
@@ -144,7 +154,7 @@ describe("Local Test LocalAuction", async function () {
             // 验证用户2出价后拍卖状态，最高出价者应为用户2，最高出价为1最小单位 USDC(6位小数)
             expect(auctionInfo.ended).to.equal(false);
             expect(auctionInfo.highestBidder).to.equal(user2.address);
-            expect(auctionInfo.highestBid).to.equal(100);
+            expect(auctionInfo.highestBid).to.equal(10 * 1000000);
 
             // 用户3 ETH 出价
             console.log("user3 出价 0.00001 ETH");

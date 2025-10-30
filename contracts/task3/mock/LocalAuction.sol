@@ -42,6 +42,8 @@ contract LocalAuction is
 
     Auction private auctionInfo; // 拍卖信息存储
 
+    address private usdcAddress; // 模拟USDC合约地址
+
     mapping(address => uint256) private priceFeeds; // 模拟喂价映射，payToken地址 => USD价格
 
     // 拍卖创建事件
@@ -86,6 +88,7 @@ contract LocalAuction is
      * @param _auctionId 拍卖ID
      */
     function initialize(
+        address _usdcAddress,
         address _seller,
         address _nftContract,
         uint256 _duration,
@@ -109,13 +112,14 @@ contract LocalAuction is
         IERC721 nft = IERC721(_nftContract);
         require(nft.ownerOf(_tokenId) == _seller, "seller not be NFT owner");
         
-        // 初始化添加Sepolia测试网的 ETH/USD 和 USDC/USD 价格预言机
-        _initPriceFeeds();
 
         // 如果是ERC20代币，需要交易拍卖是否支持此代币
         if (_payToken != address(0)) {
             require(priceFeeds[_payToken] == 0, "payToken not support");
         }
+        usdcAddress = _usdcAddress;
+        // ETH/USD 和 USDC/USD 价格预言机
+        _initPriceFeeds();
 
         auctionInfo = Auction({
             seller: _seller,
@@ -261,7 +265,7 @@ contract LocalAuction is
     // TODO 讲道理这里只应该添加ETH就好了，至于支持哪些ERC代币参与竞拍由卖家决定，卖家在设置拍卖规则的时候，可以设置哪些ERC代币
     function _initPriceFeeds() internal {
         priceFeeds[address(0)] = 393890988244; // ETH/USD
-        priceFeeds[0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238] = 1000000; // USDC/USD
+        priceFeeds[usdcAddress] = 1000000; // USDC/USD
     }
 
     // 辅助函数：计算出价的 USD 价值

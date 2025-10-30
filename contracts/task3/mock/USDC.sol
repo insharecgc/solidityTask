@@ -15,6 +15,10 @@ contract USDC is ERC20, Ownable {
         _mint(msg.sender, 1000000 * 10**decimals());
     }
 
+    function decimals() public pure override returns (uint8) {
+        return 6; // USDC通常使用6位小数
+    }
+
     /**
      * @dev 铸造新的USDC代币
      * @param to 接收代币的地址
